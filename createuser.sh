@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Adapted from http://wiki.freegeek.org/index.php/Mac_OSX_adduser_script
+
 USAGE='Usage: createuser [options..] <Full Name> <Password>
 
 options:
@@ -45,15 +47,17 @@ while getopts ":ahu:v" opt; do
             _VERBOSE=1
             ;;
         \?)
-            echo "Invalid option: -$OPTARG" >&2
+            echo "The -$OPTARG option is not valid." >&2
+            echo "$USAGE"
             exit 1
             ;;
         :)
-            echo "Option -$OPTARG requires an argument." >&2
+            echo "The -$OPTARG option requires an argument." >&2
+            echo "$USAGE"
             exit 1
             ;;
         *)
-            echo "Unknown error while processing options"
+            echo "An unknown error occured while processing the options!" >&2
             exit 1;
             ;;
     esac
@@ -94,4 +98,5 @@ for GROUP in $OTHERGROUPS ; do
 done
 
 # Create the user's home directory
-createhomedir -c -u $USERNAME  2>&1
+# shell-init: error retrieving current directory: getcwd: cannot access parent directories: Permission denied
+createhomedir -c -u $USERNAME  2>&1 | grep -v "shell-init"

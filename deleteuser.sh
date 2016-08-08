@@ -20,8 +20,8 @@ option:
 VALIDMODES=("save" "leave" "remove")
 MODE="save"
 
-while getopts ":hm:" opt; do
-    case $opt in
+while getopts ":hm:" OPT; do
+    case $OPT in
         h)
             echo "$USAGE"
             exit 0
@@ -30,20 +30,23 @@ while getopts ":hm:" opt; do
             if echo ${VALIDMODES[@]} | grep -q -w "$OPTARG"; then
                 MODE=$OPTARG
             else
-                echo "Invalid home folder mode specified with -m!"
+                echo "Invalid home folder mode specified with -$OPT!"
                 echo "$USAGE"
+                exit 1;
             fi
             ;;
         \?)
-            echo "Invalid option: -$OPTARG" >&2
+            echo "The -$OPTARG option is not valid." >&2
+            echo "$USAGE"
             exit 1
             ;;
         :)
-            echo "Option -$OPTARG requires an argument." >&2
+            echo "The -$OPTARG option requires an argument." >&2
+            echo "$USAGE"
             exit 1
             ;;
         *)
-            echo "Unknown error while processing options"
+            echo "An unknown error occured while processing the options!" >&2
             exit 1;
             ;;
     esac
@@ -51,9 +54,29 @@ done
 
 shift $((OPTIND-1))
 
+if [[ -z "$1" ]]; then
+    echo "No username specified for deletion!"
+    exit 1
+fi
+
 USERNAME=$1
 
-USEREXISTS=$(dscl . -list /Users | grep -c ^$1$)
+USEREXISTS=$(dscl . -list /Users | grep -c ^"$1"$)
 
-#dscl . -delete /Users/$1
-#rm -rf /Users/$USERNAME
+if (( $USEREXISTS == 0 )); then
+    echo "The specified user, $USERNAME, does not exist!"
+    exit 1
+fi
+
+if [[ "$MODE" == "save" ]]; then
+    if [[ ! -e "/Users/Deleted Users" ]]; then
+        mkdir -m 770 "/Users/Deleted Users"
+    fi
+    hdiutil create -format UDZO -srcfolder "/Users/$USERNAME" "/Users/Deleted Users/$USERNAME.dmg"
+fi
+
+dscl . -delete "/Users/$USERNAME"
+
+if [[ "$MODE" != "leave" ]]; then
+    rm -rf "/Users/$USERNAME"
+fi
